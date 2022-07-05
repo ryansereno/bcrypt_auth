@@ -3,7 +3,7 @@ const mongoose = require("mongoose")
 const bcrypt = require("bcrypt")
 const app = express()
 const User = require("./models/user")
-
+const session = require('express-session')
 
 mongoose.connect("mongodb://localhost:27017/authDemo", {
   useNewUrlParser: true,
@@ -15,7 +15,7 @@ app.set('view engine', 'ejs')
 app.set('views', 'views')
 
 app.use(express.urlencoded({extended: true}))
-
+app.use(session({secret:'privatekey'}))
 
 app.get('/', (req,res) =>{
     res.send('this is the homepage')
@@ -34,6 +34,7 @@ app.post('/register', async (req,res) =>{
         password: hashpw 
     })
     await user.save()
+    req.session.user_id = user._id
     res.redirect('/')
 })
 
@@ -49,15 +50,20 @@ app.post('/login', async (req,res) =>{
     const user = await User.findOne({username: username})
     const passValid = await bcrypt.compare(password, user.password)
     if(passValid) {
+        req.session.user_id = user._id //setting the session user id to the user._id of the mongoDB user document
         res.send('correct')
+
     }else{
         res.send('incorrect')
     }
-    res.redirect('/')
 })
 
 app.get('/secret', (req,res) =>{
-    res.send('password site')
+    if (!req.session.user_id){
+    res.redirect('/login')
+    }else{
+        res.send('this is an authorized page')
+    }
 })
 
 app.listen(3000, () =>{
