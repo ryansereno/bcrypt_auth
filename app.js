@@ -31,12 +31,10 @@ app.get("/register", (req, res) => {
 });
 
 app.post("/register", async (req, res) => {
-  const { username } = req.body;
-  const { password } = req.body;
-  const hashpw = await bcrypt.hash(password, 12);
+  const { username, password } = req.body;
   const user = new User({
-    username: username,
-    password: hashpw,
+    username,
+    password
   });
   await user.save();
   req.session.user_id = user._id;
@@ -48,12 +46,10 @@ app.get("/login", (req, res) => {
 });
 
 app.post("/login", async (req, res) => {
-  const { username } = req.body;
-  const { password } = req.body;
-  const user = await User.findOne({ username: username });
-  const passValid = await bcrypt.compare(password, user.password);
-  if (passValid) {
-    req.session.user_id = user._id; //setting the session user id to the user._id of the mongoDB user document
+  const { username, password } = req.body;
+  const foundUser = await User.findAndValidate(username, password);
+  if (foundUser) {
+    req.session.user_id = foundUser._id; //setting the session user id to the user._id of the mongoDB user document
     res.redirect("/secret");
   } else {
     res.send("incorrect");
@@ -66,11 +62,11 @@ app.post("/logout", (req, res) => {
 });
 
 app.get("/secret", requireLogin, (req, res) => {
-    res.render("secret");
+  res.render("secret");
 });
-app.get('/secret2', requireLogin, (req,res) =>{
-    res.send('logged in')
-})
+app.get("/secret2", requireLogin, (req, res) => {
+  res.send("logged in");
+});
 app.listen(3000, () => {
   console.log("Listening on port 3000");
 });
